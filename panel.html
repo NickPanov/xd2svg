@@ -1,0 +1,98 @@
+<style>
+    label {
+        color: #8E8E8E;
+        font-size: 9px;
+    }
+
+    h3 {
+        font-size: 10px;
+    }
+
+    .show {
+        display: block;
+    }
+
+    .hide {
+        display: none;
+    }
+
+    .debug {
+
+        font-family: Courier;
+        padding: 1rem;
+    }
+
+    .debug-paragraph {
+        border: 1px solid pink;
+    }
+
+    .alert {
+        margin: 0;
+        margin-bottom: .5rem;
+        padding: .5rem;
+        border-radius: 8px;
+        color: white;
+        background-color: rgb(57, 98, 116);
+    }
+
+    ul li {
+        list-style: none;
+        padding: 0.5rem 1rem;
+        margin-bottom: .5rem;
+        background-color: #76929a;
+        color: WHITE;
+        border-radius: 8px;
+    }
+    ul {
+        margin-bottom: 1rem;
+    }
+    select {
+        flex-grow: 1;
+    }
+</style>
+<form method="dialog" id="main">
+    <h3> ARTBOARDS</h3>
+    <p class="alert alert-warning"> Please select at least two artboards </p>
+    <ul id="artboard-list"></ul>
+    <h3> OPTIONS </h3>
+
+    <div class="row">
+        <label class='text-group'> Duration in sec </label>
+        <input class="number" type="number" uxp-quiet="true" id="duration" value="2" />
+    </div>
+    <div class="row">
+        <label class='text-group'>
+            Iterations
+        </label>
+        <input class="number" type="number" uxp-quiet="true" id="duration" value="2" />
+    </div>
+    <div class="row">
+        <label class='text-group'>
+            Direction
+        </label>
+        <select uxp-quiet="true" id="direction" value="normal">
+            <option value="normal" selected> normal</option>
+            <option value="reverse"> reverse</option>
+            <option> alternate</option>
+            <option> alternate-reverse</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <label class='text-group'>
+            Easing
+        </label>
+        <select class="number" type="number" uxp-quiet="true" id="ease"> 
+            <option value="ease">ease</option>
+            <option value="ease-in">ease-in</option>
+            <option value="ease-out">ease-out</option>
+            <option value="ease-in">ease-in</option> out;
+            <option value="linear" selected>linear</option>
+            <option value="step-start">step-start</option>
+            <option value="step-end">step-end</option>
+        </select>
+    </div>
+ 
+
+    <footer><button id="ok" type="submit" disabled uxp-variant="cta">Export Animated SVG</button></footer>
+</form>

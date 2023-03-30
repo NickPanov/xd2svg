@@ -7,7 +7,7 @@
       "minVersion": "56.1.12.1"
     }
   ],
-  "version": "1.0.0",
+  "version": "0.1.0",
   "icons": [
     {
       "width": 24,
@@ -23,8 +23,8 @@
   "uiEntryPoints": [
     {
       "type": "panel",
-      "label": "Enlarge a Rectangle",
-      "panelId": "enlargeRectangle"
+      "label": "Export Animated SVG",
+      "panelId": "animatedSVG"
     }
   ]
 }

@@ -1,9 +1,14 @@
 const { selection } = require("scenegraph");
+const fs = require("uxp").storage.localFileSystem;
+const { Timeline } = require("./xd2svg"); 
+   
 let clipboard = require("clipboard");
 let panel;
-let debug;
+let debug; 
 let keyframes;
 let submitbutton;
+let warning;
+
 
 class Debug {
     body;
@@ -37,11 +42,10 @@ class Keyframes {
         this.body.innerHTML = '';
     }
 }
+ 
 function flattenArtboards(artboards) {
     let result = [];
-
     artboards.forEach(artboard => {
-
         let flattened = [];
         const traverse = (node) => {
             flattened.push(node);
@@ -50,7 +54,6 @@ function flattenArtboards(artboards) {
             }
         };
         artboard.children.forEach((obj) => traverse(obj));
-
         result.push({
             keyframe: artboard,
             keyframeNodes: flattened
@@ -58,15 +61,13 @@ function flattenArtboards(artboards) {
     })
     return result;
 }
-function getCSS(keyframes) {
 
-    const Color = require("scenegraph").Color;
+function getCSS(keyframes) {
 
     let cssRuleset = {
         from: [],
         to: []
     };
-    let firstFrame = keyframes[0];
 
     function createCSSItem(node) {
 
@@ -76,41 +77,44 @@ function getCSS(keyframes) {
             translateX: node.translation.x,
             translateY: node.translation.y,
             rotation: node.rotation,
-            fill: node.fill.toHex()
+            fill: node.fillEnabled ? node.fill.toRgba() : false,
+            stroke: node.stroke.toRgba()
         }
     }
     keyframes.forEach((keyframe, keyframeIndex) => {
 
         keyframe.keyframeNodes.forEach(node => {
             let prevKeyframe = keyframes[keyframeIndex - 1];
+
             if (keyframeIndex == 0) {
                 cssRuleset.from.push(createCSSItem(node))
             }
             else {
-
                 if (prevKeyframe.keyframeNodes.find(pkfn => pkfn.name == node.name)) {
                     cssRuleset.to.push(createCSSItem(node))
                 }
             }
         });
 
-
     })
     let cssString = ``;
     cssRuleset.to.forEach(to => {
+ 
+
         let from = cssRuleset.from.find(from => from.id == to.id);
         cssString += `\u0040keyframes animation-${to.id}{
                 from {
                     d:path("${from.path}");
-                    fill:${from.fill};
-                    transform:translate(${from.translateX}px, ${from.translateY}px);
+                    stroke:${from.stroke};`
+        cssString += from.fill ? `fill:${from.fill};` : ``;
+        cssString += `transform:translate(${from.translateX}px, ${from.translateY}px);
                 }
                 to {
                     d:path("${to.path}");
-                    fill:${to.fill};
-                    transform:translate(${to.translateX}px, ${to.translateY}px);
+                    stroke:${to.stroke};`
+        cssString += to.fill ? `fill:${to.fill};` : ``;
+        cssString += `transform:translate(${to.translateX}px, ${to.translateY}px);
 
-                    
                 }
             }
             #${to.id}{
@@ -137,6 +141,8 @@ function SVGTemplate(firstFrame, cssCode) {
     firstFrame.keyframeNodes.forEach(node => {
         svgstring += `<path id="${node.name}"`
         if (node.pathData) svgstring += ` d="${node.pathData}"`
+        if (node.fillEnabled) svgstring += ` fill="${node.fill.toRgba()}"`
+
         svgstring += ` transform="translate(${node.translation.x} ${node.translation.y})"`
         svgstring += `/>`
     })
@@ -144,96 +150,68 @@ function SVGTemplate(firstFrame, cssCode) {
     svgstring += `</svg>`;
     return svgstring;
 }
-function generateCode() {
-    let string = ``
-    let keyframes = flattenArtboards(selection.items);
-    let cssCode = getCSS(keyframes).toString();
+async function generateCode() {
 
-    clipboard.copyText(SVGTemplate(keyframes[0], cssCode));
+    //we have the global selection.items; 
+     let timeline = new Timeline(selection.items);  
+
+    let keyframes = flattenArtboards(selection.items);
+
+    //keyframes.map(keyframe => new XD2SVG.Keyframe)
+
+    let cssCode = getCSS(keyframes).toString();
+    let SVGContent = SVGTemplate(keyframes[0], cssCode);
+
+    clipboard.copyText(SVGContent);
+    const svgfile = await fs.getFileForSaving("animation.svg");
+    await svgfile.write(SVGContent);
 
 }
-function create() {
-    const HTML =
-        `<style> 
-             label {
-                color: #8E8E8E;  
-                font-size: 9px;
-                display:block;
-            } 
-            h1 {
-                margin:1rem 0 .5rem 0;
-            }
-            label span {
-                vertical-align:middle;
-            }
-            .show {
-                display: block;
-            }
-            .hide {
-                display: none;
-            }
-            .radio {
-                vertical-align:middle;
-            }
-            .debug {
-               
-                font-family:Courier;
-                padding:1rem;
-            }
-            .debug-paragraph {
-                border:1px solid pink;
-            }
-            ul li {
-                list-style:none;
-                padding:0.5rem 1rem;
-                margin-bottom:.5rem;
-                background-color:#fefefe;
-            }
-        </style> 
-        <form method="dialog" id="main">
-                <label> 
-                    <input class="radio" type="radio" name="exportType" uxp-quiet="true" id="smil" />
-                    <span>Export SMIL animation</span>
-                </label>
-                <label> 
-                    <input class="radio" type="radio" name="exportType" uxp-quiet="true" id="CSS" />
-                    <span>Export CSS animation</span>
-                </label>
-                <h1> Please select at least two artboards   </h1>
-                <ul id="artboard-list"></ul>
-            <footer><button id="ok" type="submit" disabled uxp-variant="cta">Get</button></footer>
-        </form>
-        
-        `
+async function getHtmlTemplate(template) {
+    let pluginFolder = await fs.getPluginFolder();
+    const entries = await pluginFolder.getEntries();
+    const entry = entries.find(entry => entry.name === `${template}.html`);
+    let html = await entry.read()
+    return html
+}
+async function create() {
 
-
+    let HTML = await getHtmlTemplate('panel');
     panel = document.createElement("div");
     panel.innerHTML = HTML;
     panel.querySelector("form").addEventListener("submit", generateCode);
+    warning = panel.querySelector(".alert-warning");
     submitbutton = panel.querySelector("#ok");
     keyframes = new Keyframes(panel.querySelector("#artboard-list"));
     debug = new Debug(document.createElement("div"));
     return panel;
 }
 
-function show(event) {
-    if (!panel) event.node.appendChild(create());
+async function show(event) {
+    if (!panel) event.node.appendChild(await create());
 }
 
 function update() {
-    const { Artboard } = require("scenegraph");
-    let form = document.querySelector("form");
-    let warning = document.querySelector("#warning");
-
+    const { Artboard } = require("scenegraph"); 
+     
     debug.clear();
     keyframes.clear();
 
     let artboardCount = selection.items.filter(item => item instanceof Artboard).length;
+    if (artboardCount < 2) {
+        warning.classList.remove('hide')
+        warning.classList.add('show')
+        submitbutton.disabled = true
+    }
+    else { 
+        warning.classList.remove('show')
+        warning.classList.add('hide')
+        submitbutton.disabled = false
+    }
 
-    submitbutton.disabled = artboardCount < 2;
 
 
-    selection.items.forEach(selected => { 
+    selection.items.forEach(selected => {
         keyframes.add(selected.name);
     })
 
@@ -241,7 +219,7 @@ function update() {
 
 module.exports = {
     panels: {
-        enlargeRectangle: {
+        animatedSVG: {
             show,
             update
         }
