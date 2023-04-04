@@ -3,6 +3,7 @@ class Timeline {
     SceneNodes;
     Layers;
     duration;
+    delay;
     iterations;
     easing;
     animationOptions;
@@ -22,8 +23,8 @@ class Timeline {
         })();
         //return Unique nodes as Layers;
         this.Layers = [...new Set(this.SceneNodes.map(item => item.id))].map(nodeid => new Layer(nodeid, _self))
-        let iterations  = OPTIONS.iterations > 0 ? OPTIONS.iterations : 'infinite';
-        this.animationOptions = `${OPTIONS.duration}s ${OPTIONS.easing} 0s ${iterations} ${OPTIONS.direction};` 
+        let iterations = OPTIONS.iterations > 0 ? OPTIONS.iterations : 'infinite';
+        this.animationOptions = `${OPTIONS.duration}s ${OPTIONS.easing} ${OPTIONS.delay}s ${iterations} ${OPTIONS.direction};`
 
     }
     css() {
@@ -42,9 +43,9 @@ class Timeline {
     svg() {
         let firstFrame = this.Keyframes[0];
         let cssCode = this.css();
- 
+
         let svgstring = ``;
-      
+
 
         svgstring += `<svg width="${firstFrame.width}" height="${firstFrame.height}" viewBox="0 0 ${firstFrame.width} ${firstFrame.height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`
         svgstring += `
@@ -54,12 +55,10 @@ class Timeline {
                 </style>
             </defs>`;
 
-            console.log("GETTING SVG");
-
         firstFrame.ChildNodeList.forEach(node => {
             svgstring += `<path id="${node.id}"`
             if (node.rawPath) svgstring += ` d="${node.rawPath}"`
-            svgstring += ` fill="${node.fill}"` 
+            svgstring += ` fill="${node.fill}"`
             svgstring += ` transform="translate(${node.translation.x} ${node.translation.y})"`
             svgstring += `/>`
         })
@@ -78,7 +77,8 @@ class Keyframe {
     fill;
     constructor(artboard) {
         this.id = artboard.name.split(' ').join('_');
-
+        this.width = artboard.width;
+        this.height = artboard.height;
         this.ChildNodeList = this.flatten(artboard).map(node => new ChildNode(node))
     }
     flatten(artboard) {
@@ -105,7 +105,7 @@ class Layer {
         let keyframeCount = (timeline.Keyframes.length);
         let keyframeStep = 100 / (keyframeCount - 1);
 
-        function cssKeyframes(keyframeContent) { 
+        function cssKeyframes(keyframeContent) {
             return `@keyframes keyframes-${layerID}{
                         ${keyframeContent}
                     }`
@@ -137,9 +137,9 @@ class Layer {
             else {
                 stepset += cssKeyframesStep(i, ruleset);
             }
-            
+
         }
-        
+
         this.css += cssKeyframes(stepset).replace(':undefined', '');
 
 
@@ -148,25 +148,25 @@ class Layer {
 class ChildNode {
     //represents single node as a child;
     cssRules;
-    constructor(node /* XD Layer */) {
-        this.id = node.name.split(' ').join('_'); 
-        this.rawPath = node.pathData; 
-        this.translation = node.translation; 
+    constructor(node /* XD Layer */) { 
+        this.id = node.name.split(' ').join('_');
+        this.rawPath = node.pathData;
+        this.translation = node.translation;
         this.rotation = node.rotation;
-        this.fill = node.fillEnabled ? node.fill.toRgba() : false;
-        this.stroke = node.strokeEnabled ? node.stroke.toRgba(): false;
+        this.fill = node.fillEnabled ? `rgba(${node.fill.toRgba().r},${node.fill.toRgba().g},${node.fill.toRgba().b},${node.fill.toRgba().a / 100})`  : 'none';  
+        this.stroke = node.strokeEnabled ? node.stroke.toRgba() : 'none';
         this.opacity = node.opacity;
-         
+
         this.cssRules = {
-            d:`path("${node.pathData}")` || false,
-            transform:`translate(${node.translation.x}px,${node.translation.y}px) rotate(${this.rotation}deg)`,
-            fill:`rgba(${this.fill.r},${this.fill.g},${this.fill.b},${this.fill.a/100})`,
-            stroke:`rgba(${this.stroke.r},${this.stroke.g},${this.stroke.b},${this.stroke.a/100})`,
+            d: `path("${node.pathData}")` || false,
+            transform: `translate(${node.translation.x}px,${node.translation.y}px) rotate(${this.rotation}deg)`,
+            fill: this.fill,
+            stroke: `rgba(${this.stroke.r},${this.stroke.g},${this.stroke.b},${this.stroke.a / 100})`,
             opacity: this.opacity
-          
+
         }
     }
-    
+
 }
 module.exports = {
     Timeline,

@@ -34,6 +34,7 @@ async function generateCode() {
     animationOptions.interations = panel.querySelector('#iterations').value;
     animationOptions.direction = panel.querySelector('#direction').value; 
     animationOptions.easing = panel.querySelector('#easing').value;
+    animationOptions.delay = panel.querySelector('#delay').value;
     //we have the global selection.items; 
     let timeline = new Timeline(selection.items,animationOptions);
 
